@@ -59,6 +59,7 @@ def getAnswer():
 	if text == None or query == None:
 		resp = jsonify({'error': 'question or context is null'})
 		resp.status_code = 401
+		return resp
 	answer = QueryAnswerer().getAnswer(text, query)
 	resp = jsonify({'answer' : answer})
 	resp.status_code = 200
