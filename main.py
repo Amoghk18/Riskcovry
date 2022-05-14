@@ -31,7 +31,7 @@ def upload_file():
 		resp = jsonify({'message' : 'File successfully uploaded'})
 		if filename.rsplit('.', 1)[1].lower()=="pdf":
 			print("")
-			with pdfplumber.open('uploads/' + filename) as pdf:
+			with pdfplumber.open(os.path.join('uploads' + filename)) as pdf:
 				page = pdf.pages[5]
 				#session['text'] = page.extract_text()
 				info = page.extract_table()

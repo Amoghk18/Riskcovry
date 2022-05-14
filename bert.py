@@ -5,7 +5,7 @@ from transformers import BertTokenizer
 class QueryAnswerer():
 
     def __init__(self) -> None:
-        self.isModelSaved = True
+        self.isModelSaved = False
         self.isModelLoaded = False
         self.model = None
         self.tokenizer = None
