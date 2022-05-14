@@ -1,5 +1,4 @@
 import os
-import fitz
 import pdfplumber
 from app import app
 from flask import request, jsonify, session
@@ -27,13 +26,14 @@ def upload_file():
 	if file and allowed_file(file.filename):
 		filename = secure_filename(file.filename)
 		print(filename)
+		print(os.path.join('uploads', filename))
+		print(app.config['UPLOAD_FOLDER'])
 		file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 		resp = jsonify({'message' : 'File successfully uploaded'})
 		if filename.rsplit('.', 1)[1].lower()=="pdf":
 			print("")
-			with pdfplumber.open(os.path.join('uploads' + filename)) as pdf:
+			with pdfplumber.open(os.path.join('uploads', filename)) as pdf:
 				page = pdf.pages[5]
-				#session['text'] = page.extract_text()
 				info = page.extract_table()
 				text = ''
 				for arr in info:
@@ -43,10 +43,7 @@ def upload_file():
 							text += word + " "
 					text += "\n"
 				session['text'] = text
-			# doc = fitz.open('uploads/' + filename)
-			# for page in doc:
-			# 	session['text'] = page.get_text("text")
-	
+			
 		resp.status_code = 201
 		return resp
 	else:
