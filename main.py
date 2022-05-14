@@ -1,19 +1,19 @@
-import os
 import pdfplumber
 from app import app
-from flask import request, jsonify, session
+from flask import request, jsonify
 from werkzeug.utils import secure_filename
 
 from bert import QueryAnswerer
+from datastore import DataStore
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf'])
+datastore = DataStore()
 
 def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/fileUpload', methods=['POST'])
 def upload_file():
-	# check if the post request has the file part
 	if 'file' not in request.files:
 		resp = jsonify({'message' : 'No file part in the request'})
 		resp.status_code = 400
@@ -39,7 +39,7 @@ def upload_file():
 							new_word = word.replace("\n", ",")
 							text += new_word + " "
 					text += "\n"
-				session['text'] = text
+				datastore.setText(text)
 			
 		resp.status_code = 201
 		return resp
@@ -50,8 +50,7 @@ def upload_file():
 
 @app.route('/getAnswer', methods=['POST'])
 def getAnswer():
-	text = session.pop('text', None)
-	session['text'] = text
+	text = datastore.getText()
 	query = request.args.get('query')
 	if text == None or query == None:
 		resp = None
