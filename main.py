@@ -26,13 +26,10 @@ def upload_file():
 	if file and allowed_file(file.filename):
 		filename = secure_filename(file.filename)
 		print(filename)
-		print(os.path.join('uploads', filename))
-		print(app.config['UPLOAD_FOLDER'])
-		file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 		resp = jsonify({'message' : 'File successfully uploaded'})
 		if filename.rsplit('.', 1)[1].lower()=="pdf":
 			print("")
-			with pdfplumber.open(os.path.join('uploads', filename)) as pdf:
+			with pdfplumber.open(file) as pdf:
 				page = pdf.pages[5]
 				info = page.extract_table()
 				text = ''
@@ -40,7 +37,7 @@ def upload_file():
 					for word in arr:
 						if word is not None:
 							new_word = word.replace("\n", ",")
-							text += word + " "
+							text += new_word + " "
 					text += "\n"
 				session['text'] = text
 			
