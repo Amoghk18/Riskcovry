@@ -53,11 +53,12 @@ def getAnswer():
 	text = session.pop('text', None)
 	session['text'] = text
 	query = request.args.get('query')
-	print(text)
-	print('-------------')
-	print(query)
 	if text == None or query == None:
-		resp = jsonify({'error': 'question or context is null'})
+		resp = None
+		if text == None:
+			jsonify({'error': 'context is null'})
+		else:
+			resp = jsonify({'error': 'question is null'})
 		resp.status_code = 401
 		return resp
 	answer = QueryAnswerer().getAnswer(text, query)
