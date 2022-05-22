@@ -1,21 +1,19 @@
-import os
-import io
-import fitz
-import urllib.request
 import pdfplumber
-import PyPDF2
 from app import app
-from flask import Flask, request, redirect, jsonify
+from flask import request, jsonify
 from werkzeug.utils import secure_filename
 
+from bert import QueryAnswerer
+from datastore import DataStore
+
 ALLOWED_EXTENSIONS = set(['txt', 'pdf'])
+datastore = DataStore()
 
 def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/file-upload', methods=['POST'])
+@app.route('/fileUpload', methods=['POST'])
 def upload_file():
-	# check if the post request has the file part
 	if 'file' not in request.files:
 		resp = jsonify({'message' : 'No file part in the request'})
 		resp.status_code = 400
@@ -28,22 +26,21 @@ def upload_file():
 	if file and allowed_file(file.filename):
 		filename = secure_filename(file.filename)
 		print(filename)
-		file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 		resp = jsonify({'message' : 'File successfully uploaded'})
 		if filename.rsplit('.', 1)[1].lower()=="pdf":
+			print("")
+			with pdfplumber.open(file) as pdf:
+				page = pdf.pages[5]
+				info = page.extract_table()
+				text = ''
+				for arr in info:
+					for word in arr:
+						if word is not None:
+							new_word = word.replace("\n", ",")
+							text += new_word + " "
+					text += "\n"
+				datastore.setText(text)
 			
-			doc = fitz.open('uploads/' + filename)
-			for page in doc:
-				text = page.getText("text")
-				print(text)
-			#all_text = None
-			#with pdfplumber.open('uploads/' + filename,"rb") as pdf:
-				""" pdfReader = PyPDF2.PdfFileReader(pdf,strict=False)
-				number_of_pages = pdfReader.getNumPages()
-				page = pdfReader.getPage(0)
-				single_page_text = page.extractText()
-				print( single_page_text ) """
-	
 		resp.status_code = 201
 		return resp
 	else:
@@ -51,5 +48,22 @@ def upload_file():
 		resp.status_code = 400
 		return resp
 
+@app.route('/getAnswer', methods=['POST'])
+def getAnswer():
+	text = datastore.getText()
+	query = request.args.get('query')
+	if text == None or query == None:
+		resp = None
+		if text == None:
+			resp = jsonify({'error': 'context is null'})
+		else:
+			resp = jsonify({'error': 'question is null'})
+		resp.status_code = 401
+		return resp
+	answer = QueryAnswerer().getAnswer(text, query)
+	resp = jsonify({'answer' : answer})
+	resp.status_code = 200
+	return resp 
+
 if __name__ == "__main__":
-	app.run()
+	app.run(debug=False, host='0.0.0.0')
