@@ -15,7 +15,6 @@ class QueryAnswerer():
     def getAnswer(self, text, query):
         self.paragraph = text
         self.question = query
-        print(text, query)
         return self.getAnswerForQuery()
 
 
@@ -26,14 +25,12 @@ class QueryAnswerer():
             self.tokenizer = BertTokenizer.from_pretrained("./tokenizer/")
             self.isModelLoaded = True
         else:
-            print("executed")
             self.model = BertForQuestionAnswering.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad')
             self.tokenizer = BertTokenizer.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad')
             torch.save(self.model, 'model_bert.pth')
             self.tokenizer.save_pretrained("./tokenizer/")
             self.isModelSaved = True
-            
-            
+
     def getParagraphList(self):
         paras = []
         paragraph_new = self.paragraph.split("\n")
@@ -43,21 +40,29 @@ class QueryAnswerer():
             length = len(line.split(" "))
             if length + count + 1 < 200:
                 para += line + "\n "
-                count += len(line.split(" "))
+                count += length
             else:
                 paras.append(para)
                 para = line
                 count = len(line.split(" "))
         paras.append(para)
-        for p in paras:
-            print("para---------------------------------")
-            print(p)
         return paras
+
+    def cleanAnswers(self, answers):
+        new_answers = []
+        for ans in answers:
+            new_ans = ''
+            if not ans.startswith('['):
+                words = ans.split(' ##')
+                new_ans = ''.join(words)
+                new_answers.append(new_ans)
+        return new_answers
 
     def getAnswerForQuery(self):
         answer = ''
         paraList = self.getParagraphList()
         self.downloadModelIfAbsent()
+        answers = []
         for para in paraList:
             encoding = self.tokenizer.encode_plus(text=self.question,text_pair=para, add_special=True)
             inputs = encoding['input_ids']
@@ -68,6 +73,6 @@ class QueryAnswerer():
             start_index = torch.argmax(start_scores)
             end_index = torch.argmax(end_scores)
             answer = ' '.join(tokens[start_index:end_index+1])
-            if answer[0] != "[":
-                break
-        return answer
+            answers.append(answer)
+        answers = self.cleanAnswers(answers)
+        return answers
